@@ -6,6 +6,17 @@ import Profile from './Profile';
 const Tab = createMaterialBottomTabNavigator();
 
 export default function Homepage(){
+  // useEffect(() => {
+  //   const fetchUsers = async () => {
+  //     try{
+  //       const token = await AsyncStorage.getItem("authToken");
+  //       const decodedToken = jwtDecode(token);
+  //       console.log("Decoded token : ",decodedToken);
+  //     }catch(error){
+  //       console.error("Error while fetching users  : ",error);
+  //     }
+  //   }
+  // },[])
   return (
     <Tab.Navigator
       initialRouteName="chat"
@@ -19,7 +30,7 @@ export default function Homepage(){
           tabBarLabel: 'Chat',
           tabBarIcon: ({ color }) => (
             <MaterialCommunityIcons name="chat" color={color} size={26} />
-          ),
+          )
         }}
       />
       <Tab.Screen

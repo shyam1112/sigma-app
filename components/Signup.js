@@ -1,84 +1,96 @@
 import { useNavigation } from '@react-navigation/native';
 import axios from 'axios';
 import React, { useState } from 'react';
+import { 
+  StyleSheet, 
+  Text, 
+  View, 
+  TextInput, 
+  TouchableOpacity, 
+  SafeAreaView, 
+  ActivityIndicator, 
+  ToastAndroid 
+} from 'react-native';
 import config from '../config.json';
-import { StyleSheet, Text, View, TextInput, TouchableOpacity, SafeAreaView, Alert } from 'react-native';
 
 export default function Signup() {
-    const navigation = useNavigation();
+  const navigation = useNavigation();
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [conPassword, setConPassword] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
-    // Corrected function name
-    const navigateToLogin = () => {
-        navigation.navigate("login");
+  const REGISTER_URL = `${config.HOST}/api/auth/register`;
+
+  const navigateToLogin = () => {
+    navigation.navigate("login");
+  };
+
+  const handleRegister = async () => {
+    const validateEmail = (email) => {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      return emailRegex.test(email);
+    };
+
+    const validatePassword = (password) => {
+      // const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#])[A-Za-z\d@$!%*?&#]{8,}$/;
+      // return passwordRegex.test(password);
+      return password;
+    };
+
+    if (!name.trim() || !email.trim() || !password.trim() || !conPassword.trim()) {
+      ToastAndroid.show("All fields are required!", ToastAndroid.LONG);
+      return;
     }
 
-    const [name,setName] = useState("");
-    const [email,setEmail] = useState("");
-    const [password,setPassword] = useState("");
-    const [conPassword,setConPassword] = useState("");
+    if (!validateEmail(email)) {
+      ToastAndroid.show("Invalid email address!", ToastAndroid.LONG);
+      return;
+    }
 
+    if (!validatePassword(password)) {
+      ToastAndroid.show(
+        "Password must include 8+ characters, uppercase, lowercase, number, and a special character.",
+        ToastAndroid.LONG
+      );
+      return;
+    }
 
-    // Example: Replace with your actual registration endpoint
-    const REGISTER_URL = `${config.HOST}/api/auth/register`;
-    console.log(REGISTER_URL);
-    const handleRegister = async () => {
-      try {
-        // Construct the user object
-        console.log(name,email,password)
-        const user = {
-          name: name.trim(),
-          email: email.trim(),
-          password: password, // Consider hashing the password on the server side
-        };
-    
-        // Optional: Validate input fields before sending the request
-        if (!user.name || !user.email || !user.password) {
-          console.error("All fields are required.");
-          Alert.alert(
-            "All fields are required."
-          )
-          return;
-        }
-    
-        // Send POST request to the registration endpoint
-        const response = await axios.post(REGISTER_URL, user);
-    
-        // Assuming the API returns a structure like { success: true, data: {...} }
-        if (response.data.success) {
-          console.log("Registration successful:", response.data.data);
-          Alert.alert("Registration successful","You have been registered Successfully");
-          // Optionally, redirect the user or update the UI
-        } else if (response.data.errors) {
-          // Handle specific errors returned by the API
-          console.error("Registration errors:", response.data.errors);
-          Alert.alert("Registration Error","An error occurred while registering")
-          // Optionally, display errors to the user
-        } else {
-          console.error("Unexpected response format:", response.data);
-          Alert.alert("Registration Error","An error occurred while registering")
-        }
-      } catch (error) {
-        // Handle different types of errors
-    
-        if (error.response) {
-          // Server responded with a status other than 2xx
-          console.error("Server error:", error.response.data);
-          // Optionally, display server error messages to the user
-        } else if (error.request) {
-          // Request was made but no response received
-          console.error("Network error: No response received.", error.request);
-          // Optionally, inform the user about network issues
-        } else {
-          // Something else happened while setting up the request
-          console.error("Error in registration process:", error.message);
-        }
+    if (password !== conPassword) {
+      ToastAndroid.show("Passwords do not match!", ToastAndroid.LONG);
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      const user = { name: name.trim(), email: email.trim().toLowerCase(), password };
+      const response = await axios.post(REGISTER_URL, user);
+
+      if (response?.data) {
+        ToastAndroid.show("Registration successful!", ToastAndroid.LONG);
+        navigation.navigate("login");
+      } else {
+        ToastAndroid.show("Unexpected error occurred.", ToastAndroid.LONG);
       }
-      setName("");
-      setEmail("");
-      setPassword("");
-      setConPassword("");
-    };
-    
+    } catch (error) {
+      if (error.response) {
+        ToastAndroid.show(error.response.data?.message || "Server error occurred.", ToastAndroid.LONG);
+      } else if (error.request) {
+        ToastAndroid.show("Network error. Please check your connection.", ToastAndroid.LONG);
+      } else {
+        ToastAndroid.show("Registration failed. Try again later.", ToastAndroid.LONG);
+      }
+    } finally {
+      setIsLoading(false);
+    }
+
+    setName("");
+    setEmail("");
+    setPassword("");
+    setConPassword("");
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -98,7 +110,7 @@ export default function Signup() {
         <TextInput 
           style={styles.input}
           value={email}
-          onChangeText={(text) => setEmail(text)}
+          onChangeText={(text) => setEmail(text.toLowerCase())}
           placeholder="Email Address"
           placeholderTextColor="#B0B0B0"
         />
@@ -113,14 +125,22 @@ export default function Signup() {
         <TextInput 
           style={styles.input}
           value={conPassword}
-          onChangeText={(text)=> setConPassword(text)}
+          onChangeText={(text) => setConPassword(text)}
           placeholder="Confirm Password"
           placeholderTextColor="#B0B0B0"
           secureTextEntry={true}
         />
 
-        <TouchableOpacity style={styles.signupButton} onPress={handleRegister}>
-          <Text style={styles.signupText}>Sign Up</Text>
+        <TouchableOpacity 
+          style={styles.signupButton} 
+          onPress={handleRegister} 
+          disabled={isLoading}
+        >
+          {isLoading ? (
+            <ActivityIndicator size="small" color="#FFF" />
+          ) : (
+            <Text style={styles.signupText}>Sign Up</Text>
+          )}
         </TouchableOpacity>
       </View>
 
